@@ -24,6 +24,7 @@ export class Dashboard implements AfterViewInit {
     // Propiedad para controlar el modal de fotos
     selectedPhotoIndex: number | null = null;
     currentCoordinates: string | null = null;
+    activeTab: 'PARCELA' | 'DNI' = 'PARCELA';
 
     @ViewChild('mapContainer') mapContainer!: ElementRef;
 
@@ -32,6 +33,7 @@ export class Dashboard implements AfterViewInit {
     effect(() => {
       const selected = this.dataService.selectedRegistro();
       if (selected) {
+        this.activeTab = 'PARCELA'; // Resetear a Parcela al cambiar de productor
         this.showGeometry(selected);
       }
     });
@@ -157,26 +159,37 @@ export class Dashboard implements AfterViewInit {
     this.selectedPhotoIndex = null;
   }
 
+  // Getter para obtener solo las fotos de la pestaña activa
+  get currentPhotos() {
+    const selected = this.dataService.selectedRegistro();
+    if (!selected || !selected.fotos) return [];
+
+    return selected.fotos.filter(f => {
+      const isDni = f.tipo_foto.toUpperCase().includes('DNI');
+      return this.activeTab === 'DNI' ? isDni : !isDni;
+    });
+  }
+
   nextPhoto() {
-    const registro = this.dataService.selectedRegistro();
-    if (registro?.fotos && this.selectedPhotoIndex !== null) {
+    const photos = this.currentPhotos;
+    if (photos.length > 0 && this.selectedPhotoIndex !== null) {
       // Usamos módulo (%) para que al llegar al final vuelva al principio
-      this.selectedPhotoIndex = (this.selectedPhotoIndex + 1) % registro.fotos.length;
+      this.selectedPhotoIndex = (this.selectedPhotoIndex + 1) % photos.length;
     }
   }
 
   prevPhoto() {
-    const registro = this.dataService.selectedRegistro();
-    if (registro?.fotos && this.selectedPhotoIndex !== null) {
+    const photos = this.currentPhotos;
+    if (photos.length > 0 && this.selectedPhotoIndex !== null) {
       // Sumamos la longitud antes del módulo para manejar índices negativos correctamente
-      this.selectedPhotoIndex = (this.selectedPhotoIndex - 1 + registro.fotos.length) % registro.fotos.length;
+      this.selectedPhotoIndex = (this.selectedPhotoIndex - 1 + photos.length) % photos.length;
     }
   }
 
   get currentPhotoUrl(): string | null {
-    const registro = this.dataService.selectedRegistro();
-    if (registro?.fotos && this.selectedPhotoIndex !== null) {
-      return registro.fotos[this.selectedPhotoIndex]?.url || null;
+    const photos = this.currentPhotos;
+    if (photos.length > 0 && this.selectedPhotoIndex !== null) {
+      return photos[this.selectedPhotoIndex]?.url || null;
     }
     return null;
   }

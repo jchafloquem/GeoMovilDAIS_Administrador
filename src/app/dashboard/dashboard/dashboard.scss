@@ -234,3 +234,23 @@
     cursor: pointer;
   }
 }
+.tabs-header {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+  border-bottom: 1px solid #ddd;
+
+  button {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 600;
+    color: #666;
+
+    &.active {
+      color: #3880ff;
+      border-bottom: 2px solid #3880ff;
+    }
+  }
+}

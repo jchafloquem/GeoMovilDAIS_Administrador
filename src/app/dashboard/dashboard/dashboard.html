@@ -39,7 +39,7 @@
     <!-- PANEL FLOTANTE DE DETALLES -->
     @if (dataService.selectedRegistro(); as selected) {
       <div class="detail-panel">
-        <h3>Detalle del Productor</h3>
+        <h3>DATOS DE LA PARCELA</h3>
         <div class="grid-info">
           <div>
             <label>Área:</label>
@@ -67,15 +67,19 @@
           </div>
         </div>
 
-        <h4>Evidencias Fotográficas</h4>
+        <div class="tabs-header">
+          <button [class.active]="activeTab === 'PARCELA'" (click)="activeTab = 'PARCELA'">Fotos Parcela</button>
+          <button [class.active]="activeTab === 'DNI'" (click)="activeTab = 'DNI'">Fotos DNI</button>
+        </div>
+
         <div class="gallery">
-          @for (foto of selected.fotos; track foto.id; let i = $index) {
+          @for (foto of currentPhotos; track foto.id; let i = $index) {
             <div class="photo-wrapper" (click)="openPhoto(i)">
               <img [src]="foto.url" [alt]="foto.tipo_foto" loading="lazy">
               <span class="photo-label">{{ foto.tipo_foto }}</span>
             </div>
           } @empty {
-            <p>No hay fotos adjuntas.</p>
+            <p class="empty-msg">No hay fotos en esta categoría.</p>
           }
         </div>
       </div>
@@ -97,7 +101,7 @@
 
       <!-- Contador -->
       <div class="photo-counter" (click)="$event.stopPropagation()">
-        {{ selectedPhotoIndex + 1 }} / {{ dataService.selectedRegistro()?.fotos?.length }}
+        {{ selectedPhotoIndex + 1 }} / {{ currentPhotos.length }}
       </div>
     </div>
   }
