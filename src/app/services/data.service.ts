@@ -28,7 +28,8 @@ export class DataService {
   private http = inject(HttpClient);
   private platformId = inject(PLATFORM_ID);
   // URL limpia. Si usas localhost, asegúrate de que no termine en / para evitar el // en el log
-  private apiUrl = 'http://localhost:3000/geodaismovil/api';
+  //private apiUrl = 'http://localhost:3000/geodaismovil/api';
+  private apiUrl = 'https://backend-geodais.onrender.com/geodaismovil/api';
 
   // Signals para el estado reactivo
   registros = signal<Registro[]>([]);
