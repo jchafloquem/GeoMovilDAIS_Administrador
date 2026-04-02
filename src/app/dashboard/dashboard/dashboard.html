@@ -2,7 +2,7 @@
   <!-- BARRA LATERAL: LISTA -->
   <aside class="sidebar">
     <div class="header">
-      <h2>GeoDAIS Admin</h2>
+      <h2>GeoDAISMovil Control</h2>
       <span class="badge">{{ dataService.registros().length }} Registros</span>
     </div>
 
@@ -48,6 +48,18 @@
           <div>
             <label>Fecha:</label>
             <span style="text-transform: capitalize;">{{ selected.fecha_creacion | date:'EEEE dd/MM/yyyy' }}</span>
+          </div>
+          <div>
+            <label>Departamento:</label>
+            <span>{{ selected.txt_departamento || 'No especificado' }}</span>
+          </div>
+          <div>
+            <label>Provincia:</label>
+            <span>{{ selected.txt_provincia || 'No especificada' }}</span>
+          </div>
+          <div>
+            <label>Distrito:</label>
+            <span>{{ selected.txt_distrito || 'No especificado' }}</span>
           </div>
           <div>
             <label>Coordenadas:</label>

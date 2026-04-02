@@ -31,7 +31,7 @@ export class Dashboard implements AfterViewInit {
     // Effect: Reacciona automáticamente cuando cambia el registro seleccionado
     effect(() => {
       const selected = this.dataService.selectedRegistro();
-      if (selected && this.map) {
+      if (selected) {
         this.showGeometry(selected);
       }
     });
@@ -63,21 +63,34 @@ export class Dashboard implements AfterViewInit {
     });
 
     // Inicializa el mapa centrado en Perú
-    this.map = L.map(this.mapContainer.nativeElement).setView([-9.00, -70.0152], 6);
+    this.map = L.map(this.mapContainer.nativeElement, {
+      maxZoom: 21 // Permite un zoom mucho más profundo
+    }).setView([-9.00, -70.0152], 6);
 
     // Capa de Calles (OpenStreetMap)
     const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 21,
+      maxNativeZoom: 19 // OSM suele tener tiles hasta el nivel 19
     });
 
-    // Capa Satelital (Esri World Imagery)
-    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    // Capa Satelital (Google Hybrid) - Mucho más estable y detallada para Perú
+    const satellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+      attribution: '© Google Maps',
+      maxZoom: 21,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      maxNativeZoom: 20 // Google permite acercarse mucho más con fotos reales que Esri
     });
 
     // Añadir capa por defecto y el control de capas
-    streets.addTo(this.map!);
-    L.control.layers({ "Calles": streets, "Satélite": satellite }).addTo(this.map!);
+    satellite.addTo(this.map!);
+    L.control.layers({ "Satélite": satellite, "Calles": streets,  }).addTo(this.map!);
+
+    // Si ya había un registro seleccionado antes de que el mapa cargara, lo mostramos
+    const selected = this.dataService.selectedRegistro();
+    if (selected) {
+      this.showGeometry(selected);
+    }
   }
 
   private async showGeometry(registro: any) {
@@ -89,7 +102,12 @@ export class Dashboard implements AfterViewInit {
     }
 
     if (registro.geojson) {
-      this.geoJsonLayer = L.geoJSON(registro.geojson, {
+      // Aseguramos que el geojson sea un objeto (por si viene como string desde la API)
+      const geoData = typeof registro.geojson === 'string'
+        ? JSON.parse(registro.geojson)
+        : registro.geojson;
+
+      const layer = L.geoJSON(geoData, {
         style: { color: '#3880ff', weight: 4, fillOpacity: 0.4 },
         // Configuración para convertir puntos en marcadores CSS
         pointToLayer: (feature: any, latlng: any) => {
@@ -101,14 +119,26 @@ export class Dashboard implements AfterViewInit {
             })
           });
         }
-      }).addTo(this.map!);
+      });
+
+      this.geoJsonLayer = layer;
 
       try {
-        const bounds = this.geoJsonLayer!.getBounds();
-        this.map?.fitBounds(bounds);
+        const bounds = layer.getBounds();
+        if (bounds.isValid()) {
+          const center = bounds.getCenter();
+          this.currentCoordinates = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
 
-        const center = bounds.getCenter();
-        this.currentCoordinates = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
+          // Solo interactuamos con el mapa si ya está inicializado
+          if (this.map) {
+            layer.addTo(this.map);
+
+            // AGREGAR MARCADOR VISUAL EN EL CENTROIDE
+            L.marker(center).addTo(layer);
+
+            this.map.fitBounds(bounds);
+          }
+        }
       } catch (e) {
         console.warn('Geometría inválida o vacía');
         this.currentCoordinates = null;

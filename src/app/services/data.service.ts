@@ -7,11 +7,18 @@ export interface Registro {
   internal_key: string;
   dni_productor: string;
   nombre_completo: string;
+  nombres?: string;
+  apellido_paterno?: string;
+  apellido_materno?: string;
   tipo_cultivo: string;
   area_ha: number;
-  geojson: any; // Objeto GeoJSON
-  fotos: { id: number; tipo_foto: string; url: string }[];
+  perimetro_m?: number;
+  txt_departamento?: string;
+  txt_provincia?: string;
+  txt_distrito?: string;
   fecha_creacion: string;
+  geojson: any; // Objeto GeoJSON
+  fotos: { id: number; tipo_foto: string; url: string; ruta_foto?: string }[];
 }
 
 @Injectable({
@@ -20,7 +27,8 @@ export interface Registro {
 export class DataService {
   private http = inject(HttpClient);
   private platformId = inject(PLATFORM_ID);
-  private apiUrl = 'https://backend-geodais.onrender.com/api';
+  // URL limpia. Si usas localhost, asegúrate de que no termine en / para evitar el // en el log
+  private apiUrl = 'http://localhost:3000/geodaismovil/api';
 
   // Signals para el estado reactivo
   registros = signal<Registro[]>([]);
@@ -36,14 +44,15 @@ export class DataService {
 
   loadRegistros() {
     this.loading.set(true);
-    this.http.get<Registro[]>(`${this.apiUrl}/registros`)
+    const url = `${this.apiUrl}/registros`;
+    this.http.get<Registro[]>(url)
       .subscribe({
         next: (data) => {
-          this.registros.set(data);
+          this.registros.set(Array.isArray(data) ? data : [data]);
           this.loading.set(false);
         },
         error: (err) => {
-          console.error('Error cargando registros', err);
+          console.error(`Error loading records from ${url}:`, err);
           this.loading.set(false);
         }
       });
