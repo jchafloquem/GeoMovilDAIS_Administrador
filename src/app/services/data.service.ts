@@ -28,8 +28,8 @@ export class DataService {
   private http = inject(HttpClient);
   private platformId = inject(PLATFORM_ID);
   // URL limpia. Si usas localhost, asegúrate de que no termine en / para evitar el // en el log
-  //private apiUrl = 'http://localhost:3000/geodaismovil/api';
-  private apiUrl = 'https://backend-geodais.onrender.com/geodaismovil/api';
+  private apiUrl = 'http://localhost:3000/geodaismovil/api';
+
 
   // Signals para el estado reactivo
   registros = signal<Registro[]>([]);
@@ -46,10 +46,16 @@ export class DataService {
   loadRegistros() {
     this.loading.set(true);
     const url = `${this.apiUrl}/registros`;
+    console.debug('[DataService] loadRegistros:', url);
     this.http.get<Registro[]>(url)
       .subscribe({
         next: (data) => {
-          this.registros.set(Array.isArray(data) ? data : [data]);
+          const registros = Array.isArray(data) ? data : [data];
+          console.debug('[DataService] registros recibidos:', registros);
+          this.registros.set(registros);
+          if (!this.selectedRegistro() && registros.length > 0) {
+            this.selectedRegistro.set(registros[0]);
+          }
           this.loading.set(false);
         },
         error: (err) => {

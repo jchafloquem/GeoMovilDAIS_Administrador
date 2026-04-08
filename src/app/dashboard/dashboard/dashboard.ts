@@ -39,9 +39,10 @@ export class Dashboard implements AfterViewInit {
     });
   }
   ngAfterViewInit() {
-    // Solo inicializamos el mapa si estamos en el navegador
+    // Solo inicializamos el mapa y solicitamos datos si estamos en el navegador
     if (isPlatformBrowser(this.platformId)) {
       this.initMap();
+      this.dataService.loadRegistros();
     }
   }
 
