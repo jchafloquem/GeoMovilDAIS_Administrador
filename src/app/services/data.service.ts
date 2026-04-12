@@ -64,8 +64,14 @@ export class DataService {
     this.http.get<Registro[]>(url)
       .subscribe({
         next: (data) => {
-          const registros = Array.isArray(data) ? data : [data];
-          console.debug('[DataService] Registros recibidos con éxito:', registros.length);
+          let registros = Array.isArray(data) ? data : [data];
+
+          // Ordenar por fechaCreacion de forma descendente (más reciente primero)
+          registros.sort((a, b) => {
+            return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
+          });
+
+          console.debug('[DataService] Registros recibidos y ordenados por fecha:', registros.length);
           this.registros.set(registros);
           if (!this.selectedRegistro() && registros.length > 0) {
             this.selectedRegistro.set(registros[0]);
@@ -87,5 +93,11 @@ export class DataService {
 
   selectRegistro(registro: Registro) {
     this.selectedRegistro.set(registro);
+  }
+
+  downloadPackage(id: number) {
+    // Construimos la URL según la documentación proporcionada
+    const url = `${this.apiUrl}/export/descargar-paquete/${id}`;
+    return this.http.get(url, { responseType: 'blob' });
   }
 }

@@ -39,7 +39,15 @@
     <!-- PANEL FLOTANTE DE DETALLES -->
     @if (dataService.selectedRegistro(); as selected) {
       <div class="detail-panel">
-        <h3>DATOS DE LA PARCELA</h3>
+        <div class="panel-header-actions">
+          <h3>DATOS DE LA PARCELA</h3>
+          <button class="download-btn"
+                  [disabled]="isDownloading()"
+                  (click)="downloadSelectedPackage()">
+            {{ isDownloading() ? 'Generando...' : 'Descargar ZIP' }}
+          </button>
+        </div>
+
         <div class="grid-info">
           <div>
             <label>Área:</label>

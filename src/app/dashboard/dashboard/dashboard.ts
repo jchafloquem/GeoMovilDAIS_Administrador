@@ -23,6 +23,7 @@ export class Dashboard implements AfterViewInit {
     private geoJsonLayer: GeoJSON | undefined;
     private isMapReady = signal(false);
 
+    isDownloading = signal(false);
     // Propiedad para controlar el modal de fotos
     selectedPhotoIndex: number | null = null;
     currentCoordinates: string | null = null;
@@ -158,6 +159,34 @@ export class Dashboard implements AfterViewInit {
     } else {
       this.currentCoordinates = null;
     }
+  }
+
+  downloadSelectedPackage() {
+    const selected = this.dataService.selectedRegistro();
+    if (!selected || this.isDownloading()) return;
+
+    this.isDownloading.set(true);
+
+    this.dataService.downloadPackage(selected.id).subscribe({
+      next: (blob) => {
+        // Crear un link temporal para disparar la descarga
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Export_Productor_${selected.id}.zip`;
+        document.body.appendChild(a);
+        a.click();
+
+        // Limpieza
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        this.isDownloading.set(false);
+      },
+      error: (err) => {
+        console.error('Error al descargar el paquete:', err);
+        this.isDownloading.set(false);
+      }
+    });
   }
 
   // Métodos para el modal de fotos
