@@ -1,4 +1,4 @@
-import { Component, inject, effect, ViewChild, ElementRef, AfterViewInit, PLATFORM_ID } from '@angular/core';
+import { Component, inject, effect, ViewChild, ElementRef, AfterViewInit, PLATFORM_ID, signal } from '@angular/core';
 import { CommonModule, DatePipe, isPlatformBrowser } from '@angular/common';
 
 import { DataService } from '../../services/data.service';
@@ -18,8 +18,10 @@ export class Dashboard implements AfterViewInit {
     dataService = inject(DataService);
     private platformId = inject(PLATFORM_ID); // Para detectar si estamos en el navegador
 
+    private L: any; // Instancia de Leaflet cacheada
     private map: Map | undefined;
     private geoJsonLayer: GeoJSON | undefined;
+    private isMapReady = signal(false);
 
     // Propiedad para controlar el modal de fotos
     selectedPhotoIndex: number | null = null;
@@ -32,29 +34,34 @@ export class Dashboard implements AfterViewInit {
     // Effect: Reacciona automáticamente cuando cambia el registro seleccionado
     effect(() => {
       const selected = this.dataService.selectedRegistro();
-      if (selected) {
+      if (selected && this.isMapReady()) {
         this.activeTab = 'PARCELA'; // Resetear a Parcela al cambiar de productor
         this.showGeometry(selected);
       }
     });
   }
-  ngAfterViewInit() {
+
+  async ngAfterViewInit() {
     // Solo inicializamos el mapa y solicitamos datos si estamos en el navegador
     if (isPlatformBrowser(this.platformId)) {
-      this.initMap();
-      this.dataService.loadRegistros();
+      await this.initMap();
+      this.loadInitialData();
     }
   }
 
-  private async initMap() {
-    // Importación dinámica robusta: Verifica explícitamente dónde está la función 'map'
-    const module = await import('leaflet') as any;
-    const L = module.default?.map ? module.default : module;
+  private loadInitialData() {
+    this.dataService.loadRegistros();
+  }
 
-    if (!L || !L.map) {
-      console.error('Error crítico: Leaflet no se cargó correctamente.', module);
-      return;
+  private async initMap() {
+    if (!this.L) {
+      // Importación dinámica única
+      const module = await import('leaflet') as any;
+      this.L = module.default?.map ? module.default : module;
     }
+
+    const L = this.L;
+    if (!L || !L.map) return;
 
     // FIX: Corregir la ruta de los iconos de Leaflet para producción
     // Esto es necesario porque al compilar, Leaflet pierde la referencia a sus imágenes locales
@@ -89,26 +96,28 @@ export class Dashboard implements AfterViewInit {
     satellite.addTo(this.map!);
     L.control.layers({ "Satélite": satellite, "Calles": streets,  }).addTo(this.map!);
 
-    // Si ya había un registro seleccionado antes de que el mapa cargara, lo mostramos
-    const selected = this.dataService.selectedRegistro();
-    if (selected) {
-      this.showGeometry(selected);
-    }
+    this.isMapReady.set(true);
   }
 
-  private async showGeometry(registro: any) {
-    const module = await import('leaflet') as any;
-    const L = module.default?.map ? module.default : module;
+  private showGeometry(registro: any) {
+    if (!this.L || !this.map) return;
+    const L = this.L;
 
     if (this.geoJsonLayer) {
       this.map?.removeLayer(this.geoJsonLayer);
     }
 
-    if (registro.geojson) {
-      // Aseguramos que el geojson sea un objeto (por si viene como string desde la API)
-      const geoData = typeof registro.geojson === 'string'
-        ? JSON.parse(registro.geojson)
-        : registro.geojson;
+    if (registro.geom) {
+      let geoData;
+      try {
+        // Aseguramos que el geojson sea un objeto (por si viene como string desde la API)
+        geoData = typeof registro.geom === 'string'
+          ? JSON.parse(registro.geom)
+          : registro.geom;
+      } catch (parseError) {
+        console.error('Error al parsear la geometría (no es JSON válido):', registro.geom);
+        return;
+      }
 
       const layer = L.geoJSON(geoData, {
         style: { color: '#3880ff', weight: 4, fillOpacity: 0.4 },
@@ -163,10 +172,10 @@ export class Dashboard implements AfterViewInit {
   // Getter para obtener solo las fotos de la pestaña activa
   get currentPhotos() {
     const selected = this.dataService.selectedRegistro();
-    if (!selected || !selected.fotos) return [];
+    if (!selected || !selected.fotosAsociadas) return [];
 
-    return selected.fotos.filter(f => {
-      const isDni = f.tipo_foto.toUpperCase().includes('DNI');
+    return selected.fotosAsociadas.filter(f => {
+      const isDni = f.tipoFoto.toUpperCase().includes('DNI');
       return this.activeTab === 'DNI' ? isDni : !isDni;
     });
   }
@@ -187,10 +196,19 @@ export class Dashboard implements AfterViewInit {
     }
   }
 
+  formatPhotoUrl(ruta: string | undefined): string | null {
+    if (!ruta) return null;
+    const rawData = ruta.trim();
+    if (rawData.startsWith('http') || rawData.startsWith('data:image')) {
+      return rawData;
+    }
+    return `data:image/jpeg;base64,${rawData}`;
+  }
+
   get currentPhotoUrl(): string | null {
     const photos = this.currentPhotos;
     if (photos.length > 0 && this.selectedPhotoIndex !== null) {
-      return photos[this.selectedPhotoIndex]?.url || null;
+      return this.formatPhotoUrl(photos[this.selectedPhotoIndex].rutaFoto);
     }
     return null;
   }

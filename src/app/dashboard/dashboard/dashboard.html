@@ -14,16 +14,16 @@
         </div>
       }
 
-      @for (registro of dataService.registros(); track registro.internal_key) {
+      @for (registro of dataService.registros(); track registro.internalKey) {
         <div class="card"
              [class.active]="dataService.selectedRegistro() === registro"
              (click)="dataService.selectRegistro(registro)">
           <div class="card-header">
-            <strong>{{ registro.nombre_completo || 'Sin Nombre' }}</strong>
+            <strong>{{ registro.nombreCompleto || 'Sin Nombre' }}</strong>
           </div>
           <div class="card-body">
-            <p>DNI: {{ registro.dni_productor }}</p>
-            <span class="tag">{{ registro.tipo_cultivo }}</span>
+            <p>DNI: {{ registro.dniProductor }}</p>
+            <span class="tag">{{ registro.tipoCultivo }}</span>
           </div>
         </div>
       } @empty {
@@ -43,23 +43,23 @@
         <div class="grid-info">
           <div>
             <label>Área:</label>
-            <span>{{ selected.area_ha }} ha</span>
+            <span>{{ selected.area }} ha</span>
           </div>
           <div>
             <label>Fecha:</label>
-            <span style="text-transform: capitalize;">{{ selected.fecha_creacion | date:'EEEE dd/MM/yyyy' }}</span>
+            <span style="text-transform: capitalize;">{{ selected.fechaCreacion | date:'EEEE dd/MM/yyyy' }}</span>
           </div>
           <div>
             <label>Departamento:</label>
-            <span>{{ selected.txt_departamento || 'No especificado' }}</span>
+            <span>{{ selected.departamentoInei || 'No especificado' }}</span>
           </div>
           <div>
             <label>Provincia:</label>
-            <span>{{ selected.txt_provincia || 'No especificada' }}</span>
+            <span>{{ selected.provinciaInei || 'No especificada' }}</span>
           </div>
           <div>
             <label>Distrito:</label>
-            <span>{{ selected.txt_distrito || 'No especificado' }}</span>
+            <span>{{ selected.distritoInei || 'No especificado' }}</span>
           </div>
           <div>
             <label>Coordenadas:</label>
@@ -75,8 +75,8 @@
         <div class="gallery">
           @for (foto of currentPhotos; track foto.id; let i = $index) {
             <div class="photo-wrapper" (click)="openPhoto(i)">
-              <img [src]="foto.url" [alt]="foto.tipo_foto" loading="lazy">
-              <span class="photo-label">{{ foto.tipo_foto }}</span>
+              <img [src]="formatPhotoUrl(foto.rutaFoto)" [alt]="foto.tipoFoto" loading="lazy">
+              <span class="photo-label">{{ foto.tipoFoto }}</span>
             </div>
           } @empty {
             <p class="empty-msg">No hay fotos en esta categoría.</p>
